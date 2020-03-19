@@ -10,7 +10,9 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
 
 class AdController extends AbstractController
 {
@@ -30,6 +32,7 @@ class AdController extends AbstractController
      * Permet de créer une annonce
      * 
      * @Route("/ads/new", name="ads_create")
+     * @IsGranted("ROLE_USER")
      * @return Response
      */
     public function create(Request $request, EntityManagerInterface $manager){
@@ -65,11 +68,30 @@ class AdController extends AbstractController
             'form' => $form->createView()
           ]);
       }
+    /**
+     * Permet de supprimer une annonce
+     *
+     * @Route("/ads/{slug}/delete", name="ads_delete")
+     * @Security("is_granted('ROLE_USER') and user === ad.getAuthor()", message="cette annonce ne vous appartient pas, vous ne pouvez pas la supprimer")
+     * 
+     * @param Ad $ad
+     * @return Response
+     */
+    public function delete(Ad $ad, EntityManagerInterface $manager){
+        $manager->remove($ad);
+        $manager->flush();
 
+        $this->addFlash(
+            'success', 
+            "L'annonce <strong>{$ad->getTitle()}</strong> a bien été supprimée! "
+        );
+       return $this->redirectToRoute("ad");
+    }  
     /**
      * Permet d'afficher le formulaire d'édition
      * 
      * @Route("/ads/{slug}/edit", name="ads_edit")
+     * @Security("is_granted('ROLE_USER') and user === ad.getAuthor()", message="cette annonce ne vous appartient pas, vous ne pouvez pas la modifier")
      * 
      * @return Response
      */  
@@ -115,6 +137,5 @@ class AdController extends AbstractController
             'ad' => $ad
         ]);
     }
-
 
 }
